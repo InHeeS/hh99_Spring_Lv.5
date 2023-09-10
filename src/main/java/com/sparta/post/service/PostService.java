@@ -31,7 +31,11 @@ public class PostService {
     private final UserRepository userRepository;
     //멤버 변수 선언
     private final PostRepository postRepository;
-    private final FolderRepository folderRepository;
+
+    public List<PostResponseDto> getFolder(Long id) {
+        List<Post> postList = postRepository.findByFolderNumber(id);
+        return postList.stream().map(PostResponseDto::new).toList();
+    }
 
     @Transactional
     public ResponseEntity<?> createPost(PostRequestDto requestDto, String tokenValue) {
@@ -42,13 +46,9 @@ public class PostService {
                 new UserNotFoundException("회원을 찾을 수 없습니다.")
         );
 
-
         //RequestDto -> Entity
         Post post = new Post(requestDto,username);
         user.addPostList(post);
-
-        //폴더 객체 저장
-        folderRepository.save(new Folder(post,requestDto.getFolderNumber()));
 
         //DB 저장
         Post savePost = postRepository.save(post);
@@ -75,27 +75,13 @@ public class PostService {
 
     }
 
-    @Transactional(readOnly = true)
-    public List<FolderResponseDto> getPost(Long folderNumber) {
-
-        List<Folder> folderList = folderRepository.findByFolderNumber(folderNumber);
-        List<FolderResponseDto> folderResponseDtoList = new ArrayList<>();
-        for(Folder folder : folderList){
-            FolderResponseDto folderRes =  new FolderResponseDto(folder);
-            folderResponseDtoList.add(folderRes);
-        }
-
-        return folderResponseDtoList;
-
-
-//        return getPosts(pageRequestDto).stream() // Stream Page<PostResponseDto>
-//                .filter(n->folderRepository.findByFolderNumber(folderNumber) // folder id에 해당하는 folder
-//                        .getPosts() // postlist
-//                        .stream().map(Post::getId).toList() // post id list
-//                        .contains(n.getId())
-//                ) // getposts -> post -> post id in( folder -> postlist -> post id)
-//                .collect(Collectors.toList()); // List<PostResponseDto>
+    public PostResponseDto getPost(Long id) {
+        // id 로 조회
+        Post post = findPost(id);
+        // 새로운 Dto 로 수정할 부분 최소화
+        return new PostResponseDto(post);
     }
+
     @Transactional //변경 감지(Dirty Checking), 부모메서드인 updatePost
     public ResponseEntity<?> updatePost(Long id, PostRequestDto requestDto, String tokenValue){
         User principal = SecurityUtil.getPrincipal().get();
@@ -155,5 +141,4 @@ public class PostService {
                 new IllegalArgumentException("선택한 게시글은 존재하지 않습니다.")
         );
     }
-
 }

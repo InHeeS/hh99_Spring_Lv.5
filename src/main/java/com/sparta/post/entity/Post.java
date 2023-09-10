@@ -33,6 +33,9 @@ public class Post extends Timestamped{
     @Column(name = "likecount", nullable = false)
     private Long likeCount = 0L;
 
+    @Column(name = "foldernumber", nullable = false)
+    private Long folderNumber;
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.REMOVE)
     @JsonBackReference
     private List<Comment> comments = new ArrayList<>();
@@ -45,6 +48,7 @@ public class Post extends Timestamped{
     @ManyToOne
     @JoinColumn(name = "folder_id")
     private Folder folder;
+
 
     public Post(PostRequestDto requestDto, String username) {
         this.title = requestDto.getTitle();

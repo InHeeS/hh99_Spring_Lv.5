@@ -1,6 +1,7 @@
 package com.sparta.post.repository;
 
 import com.sparta.post.dto.PageRequestDto;
+import com.sparta.post.dto.PostResponseDto;
 import com.sparta.post.dto.PostResponseListDto;
 import com.sparta.post.entity.Post;
 import org.springframework.data.domain.Page;
@@ -17,4 +18,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findAllByOrderByCreatedAt();
 
 
+    List<Post> findByFolderNumber(Long id);
 }

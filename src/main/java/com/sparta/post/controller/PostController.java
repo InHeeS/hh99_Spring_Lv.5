@@ -22,6 +22,14 @@ public class PostController {
         this.postService = postService;
     }
 
+    // 게시글을 폴더명으로 조회
+    @GetMapping("/folder/{id}")
+    public List<PostResponseDto> getFolder(@PathVariable Long id){
+        return postService.getFolder(id);
+
+    }
+
+
     // @RequestBody 는 Json 형식으로 넘겨주어야한다.
     @PostMapping("/post")
     public ResponseEntity<?> createPost(@RequestBody PostRequestDto requestDto,
@@ -38,7 +46,7 @@ public class PostController {
 
     // @RequestBody -> Json 기반의 메시지를 사용하는 요청의 경우
     @GetMapping("/post/{id}")
-    public List<FolderResponseDto> getPost(@PathVariable Long id) {
+    public PostResponseDto getPost(@PathVariable Long id) {
         return postService.getPost(id);
     }
 

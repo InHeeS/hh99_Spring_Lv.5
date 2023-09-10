@@ -19,6 +19,7 @@ public class PostResponseDto{
     private String username;
     private String content;
     private Long likeCount;
+    private Long folderNumber;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
     private List<ForResponseComment> comments = new ArrayList<>();
@@ -40,6 +41,7 @@ public class PostResponseDto{
         this.content = post.getContent();
         this.likeCount = post.getLikeCount();
         this.createdAt = post.getCreatedAt();
+        this.folderNumber = post.getFolderNumber();
         this.modifiedAt = post.getModifiedAt();
         StringBuilder sb = new StringBuilder();
         List<Comment> commentlist = new ArrayList<>(post.getComments());
@@ -49,5 +51,8 @@ public class PostResponseDto{
             comments.add(cm);
         }
         Collections.sort(comments, comparator);
+
+
     }
+
 }
