@@ -1,9 +1,6 @@
 package com.sparta.post.service;
 
-import com.sparta.post.dto.PageRequestDto;
-import com.sparta.post.dto.PostRequestDto;
-import com.sparta.post.dto.PostResponseDto;
-import com.sparta.post.dto.PostResponseListDto;
+import com.sparta.post.dto.*;
 import com.sparta.post.entity.*;
 import com.sparta.post.exception.TokenNotValidException;
 import com.sparta.post.exception.UserNotFoundException;
@@ -22,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,30 +73,28 @@ public class PostService {
 
         return postList.map(PostResponseDto::new);
 
-
-        // comment : post  -> N : 1
-        // commentList -> postId 기준으로 불러온다.
-//        List<Post> postList = postRepository.findAllByOrderByCreatedAt();
-//        List<PostResponseDto> postResponseDtoList = new ArrayList<>();
-//
-//        for(Post post : postList){
-//            PostResponseDto postRes = new PostResponseDto(post);
-//            postResponseDtoList.add(postRes);
-//        }
-//        return new PostResponseListDto(postResponseDtoList);
-        //return postRepository.findAllByOrderByCreatedAtDesc().stream().map(PostResponseDto::new).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getPost(Long folderNumber, PageRequestDto pageRequestDto) {
+    public List<FolderResponseDto> getPost(Long folderNumber) {
 
-        return getPosts(pageRequestDto).stream() // Stream Page<PostResponseDto>
-                .filter(n->folderRepository.findByFolderNumber(folderNumber) // folder id에 해당하는 folder
-                        .getPosts() // postlist
-                        .stream().map(Post::getId).toList() // post id list
-                        .contains(n.getId())
-                ) // getposts -> post -> post id in( folder -> postlist -> post id)
-                .collect(Collectors.toList()); // List<PostResponseDto>
+        List<Folder> folderList = folderRepository.findByFolderNumber(folderNumber);
+        List<FolderResponseDto> folderResponseDtoList = new ArrayList<>();
+        for(Folder folder : folderList){
+            FolderResponseDto folderRes =  new FolderResponseDto(folder);
+            folderResponseDtoList.add(folderRes);
+        }
+
+        return folderResponseDtoList;
+
+
+//        return getPosts(pageRequestDto).stream() // Stream Page<PostResponseDto>
+//                .filter(n->folderRepository.findByFolderNumber(folderNumber) // folder id에 해당하는 folder
+//                        .getPosts() // postlist
+//                        .stream().map(Post::getId).toList() // post id list
+//                        .contains(n.getId())
+//                ) // getposts -> post -> post id in( folder -> postlist -> post id)
+//                .collect(Collectors.toList()); // List<PostResponseDto>
     }
     @Transactional //변경 감지(Dirty Checking), 부모메서드인 updatePost
     public ResponseEntity<?> updatePost(Long id, PostRequestDto requestDto, String tokenValue){

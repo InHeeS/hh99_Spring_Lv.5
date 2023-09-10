@@ -1,8 +1,6 @@
 package com.sparta.post.controller;
 
-import com.sparta.post.dto.PageRequestDto;
-import com.sparta.post.dto.PostRequestDto;
-import com.sparta.post.dto.PostResponseDto;
+import com.sparta.post.dto.*;
 import com.sparta.post.entity.Message;
 import com.sparta.post.jwt.JwtUtil;
 import com.sparta.post.service.PostService;
@@ -40,8 +38,8 @@ public class PostController {
 
     // @RequestBody -> Json 기반의 메시지를 사용하는 요청의 경우
     @GetMapping("/post/{id}")
-    public List<PostResponseDto> getPost(@PathVariable Long id, @RequestBody PageRequestDto pageRequestDto) {
-        return postService.getPost(id, pageRequestDto);
+    public List<FolderResponseDto> getPost(@PathVariable Long id) {
+        return postService.getPost(id);
     }
 
     //@PathVariable uri -> id
