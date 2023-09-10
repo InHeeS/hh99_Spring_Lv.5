@@ -22,9 +22,6 @@ public class CommentLike {
     @Column(name = "userid", nullable = false)
     private Long userId;
 
-    @Column(name = "commentlike", nullable = false)
-    private Boolean commentLike = true;
-
     @Column(name = "postid", nullable = false)
     private Long postId;
 

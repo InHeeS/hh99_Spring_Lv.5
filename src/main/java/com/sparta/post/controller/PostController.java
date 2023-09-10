@@ -34,14 +34,12 @@ public class PostController {
     @GetMapping("/posts") // Slice
     public List<PostResponseDto> getPosts(@RequestBody PageRequestDto pageRequestDto){
         return postService.getPosts(pageRequestDto).getContent();
-//        Page<PostResponseDto> dto = postService.getPosts(pageRequestDto);
-//        return dto;
     }
 
     // @RequestBody -> Json 기반의 메시지를 사용하는 요청의 경우
     @GetMapping("/post/{id}")
-    public List<PostResponseDto> getPost(@PathVariable Long id, @RequestBody PageRequestDto pageRequestDto) {
-        return postService.getPost(id, pageRequestDto);
+    public List<PostResponseDto> getPost(@PathVariable Long id) {
+        return postService.getPost(id);
     }
 
     //@PathVariable uri -> id

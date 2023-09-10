@@ -26,16 +26,17 @@ public class LikeService {
         Post post = postRepository.findById(postId).orElseThrow(() ->
                 new IllegalArgumentException("해당 게시글은 존재하지 않습니다.")
         );
-        post.setLikeCount(post.getLikeCount() + 1);
 
-        PostLike postLike= postLikeRepository.findById(postId).orElse(null);
-
-        if(postLike == null) {
-            postLikeRepository.save(new PostLike(postId, userId));
-        } else {
-            postLike.setPostLike((!postLike.getPostLike()));
+        PostLike temp = postLikeRepository.findByUserId(userId).orElse(null);
+        if(temp==null) {
+            postLikeRepository.save(new PostLike(postId,userId));
+            post.setLikeCount(post.getLikeCount() + 1);
         }
-        return new ResponseEntity<>(new Message("게시글 좋아요 성공",200), null, HttpStatus.OK);
+        else {
+            post.setLikeCount(post.getLikeCount() - 1);
+            postLikeRepository.delete(temp);
+        }
+        return new ResponseEntity<>(new Message("게시글 좋아요 클릭 성공",200), null, HttpStatus.OK);
     }
 
     @Transactional
@@ -46,15 +47,17 @@ public class LikeService {
         Comment comment = commentRepository.findById(commentId).orElseThrow(()->
                 new IllegalArgumentException("해당 댓글은 존재하지 않습니다.")
         );
-        comment.setLikeCount(comment.getLikeCount()+1);
-
-        CommentLike commentLike = commentLikeRepository.findById(commentId).orElse(null);
-        if(commentLike==null)
+        CommentLike temp =commentLikeRepository.findByUserId(userId).orElse(null);
+        if(temp==null) {
             commentLikeRepository.save(new CommentLike(postId,commentId,userId));
-        else
-            commentLike.setCommentLike(!commentLike.getCommentLike());
+            comment.setLikeCount(comment.getLikeCount() + 1);
+        }
+        else {
+            comment.setLikeCount(comment.getLikeCount() - 1);
+            commentLikeRepository.delete(temp);
+        }
 
-        return new ResponseEntity<>(new Message("게시글 좋아요 성공",200), null, HttpStatus.OK);
+        return new ResponseEntity<>(new Message("댓글 좋아요 클릭 성공",200), null, HttpStatus.OK);
 
     }
 

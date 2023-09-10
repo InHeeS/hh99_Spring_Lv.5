@@ -22,10 +22,6 @@ public class PostLike {
     @Column(name = "userid", nullable = false)
     private Long userId;
 
-    @Column(name = "postlike", nullable = false)
-    private Boolean postLike = true;
-
-
     public PostLike(Long postId, Long userId) {
         this.postId = postId;
         this.userId = userId;

@@ -23,6 +23,9 @@ public class Folder {
     @Column(name = "foldernumber", nullable = false)
     private Long folderNumber;
 
+    @Column(name = "postid", nullable = false)
+    private Long postId;
+
     // folder : post = 1 : n
     @OneToMany(mappedBy = "folder", cascade = CascadeType.PERSIST) // Folder 를 저장하면 Post 도 저장
     @JsonBackReference
@@ -36,8 +39,10 @@ public class Folder {
 
     public Folder(Post post, Long folderNumber) {
         this.folderNumber = folderNumber;
+        this.postId = post.getId();
         this.posts.add(post);
         post.setFolder(this);
+
     }
 
 }

@@ -49,32 +49,36 @@ public class PostService {
         Post post = new Post(requestDto,username);
         user.addPostList(post);
 
-        //폴더 객체 저장
-        folderRepository.save(new Folder(post,requestDto.getFolderNumber()));
-
         //DB 저장
         Post savePost = postRepository.save(post);
+
+        //폴더 객체 저장
+        folderRepository.save(new Folder(post,requestDto.getFolderNumber()));
 
         //Entity -> ResponseDto
         return new ResponseEntity<>(new PostResponseDto(savePost),null, HttpStatus.OK);
     }
 
 
-    public Page<PostResponseDto> getPosts(PageRequestDto pageRequestDto){
-
+    public Pageable getPageable(PageRequestDto pageRequestDto){
         // 페이징 처리
         Sort.Direction direction = pageRequestDto.getIsAsc() ? Sort.Direction.ASC : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, pageRequestDto.getSortBy());
-        Pageable pageable = PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
+        return PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
+    }
+    public Page<PostResponseDto> getPosts(PageRequestDto pageRequestDto){
 
-        // 사용자 권한 가져와서 ADMIN 이면 전체 조회, USER 면 본인이 추가한 부분 조회
-//        UserRoleEnum userRoleEnum = user.getRole();
-
-        Page<Post> postList;
-        postList = postRepository.findAll(pageable);
-
-        return postList.map(PostResponseDto::new);
-
+        // 페이징 처리
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
+//
+//        // 사용자 권한 가져와서 ADMIN 이면 전체 조회, USER 면 본인이 추가한 부분 조회
+////        UserRoleEnum userRoleEnum = user.getRole();
+//
+//        Page<Post> postList;
+//        postList = postRepository.findAll(pageable);
+//
+//        return postList.map(PostResponseDto::new);
+        return postRepository.findAll(getPageable(pageRequestDto)).map(PostResponseDto::new);
 
         // comment : post  -> N : 1
         // commentList -> postId 기준으로 불러온다.
@@ -90,15 +94,21 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseDto> getPost(Long folderNumber, PageRequestDto pageRequestDto) {
-
-        return getPosts(pageRequestDto).stream() // Stream Page<PostResponseDto>
-                .filter(n->folderRepository.findByFolderNumber(folderNumber) // folder id에 해당하는 folder
-                        .getPosts() // postlist
-                        .stream().map(Post::getId).toList() // post id list
+    public List<PostResponseDto> getPost(Long folderNumber) {
+//        System.out.println("folderNumber = " + folderNumber);
+//        List<PostResponseDto> temp = getPosts(pageRequestDto).stream().collect(Collectors.toList());
+//
+//        List<Integer> checkLong = folderRepository.findByFolderNumber(folderNumber).stream().map(n->n.getPostId().intValue()).collect(Collectors.toList());
+//
+//        temp = temp.stream().filter(n->checkLong.contains(n.getId().intValue())).collect(Collectors.toList());
+        return postRepository.findAll().stream()
+                .filter(
+                        n->folderRepository.findByFolderNumber(folderNumber).stream()
+                        .map(Folder::getPostId).toList()
                         .contains(n.getId())
-                ) // getposts -> post -> post id in( folder -> postlist -> post id)
-                .collect(Collectors.toList()); // List<PostResponseDto>
+                )
+                .map(PostResponseDto::new)
+                .collect(Collectors.toList());
     }
     @Transactional //변경 감지(Dirty Checking), 부모메서드인 updatePost
     public ResponseEntity<?> updatePost(Long id, PostRequestDto requestDto, String tokenValue){
