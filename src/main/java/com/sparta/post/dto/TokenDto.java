@@ -1,18 +1,17 @@
 package com.sparta.post.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
-@Builder
-//@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@NoArgsConstructor
 public class TokenDto {
-    private String grantType;
+
     private String accessToken;
     private String refreshToken;
-    private String key;
+
+    public TokenDto(String accessToken, String refreshToken) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+    }
 
 }

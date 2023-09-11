@@ -4,6 +4,7 @@ import com.sparta.post.dto.*;
 import com.sparta.post.entity.Message;
 import com.sparta.post.jwt.JwtUtil;
 import com.sparta.post.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

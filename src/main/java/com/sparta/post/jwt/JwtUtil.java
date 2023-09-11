@@ -1,14 +1,15 @@
 package com.sparta.post.jwt;
 
 import com.sparta.post.dto.TokenDto;
+import com.sparta.post.entity.RefreshToken;
 import com.sparta.post.entity.UserRoleEnum;
+import com.sparta.post.repository.RefreshTokenRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Builder;
-import org.hibernate.validator.internal.engine.messageinterpolation.parser.Token;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,8 +18,10 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class JwtUtil {
 
     //쿠키를 직접 만들어서 토큰을 담아 쿠키를 Response 객체에 담아 반환
@@ -31,8 +34,11 @@ public class JwtUtil {
     // Token 식별자
     public static final String BEARER_PREFIX = "Bearer ";
     // 토큰 만료시간
-    private final long TOKEN_TIME =  10 * 1000L; // 60분, 밀리세컨드
-    private final long TOKEN_TIME2 = 60 * 60 * 1000L;
+    private final long ACCESS_TIME =  60 * 1000L; // 1분, 밀리세컨드
+    private final long REFRESH_TIME  = 60 * 60 * 1000L * 24; // 1일
+
+    public static final String ACCESS_TOKEN = "Access_Token";
+    public static final String REFRESH_TOKEN = "Refresh_Token";
 
     @Value("${jwt.secret.key}") // Base64 Encode 한 SecretKey
     private String secretKey; //jwt.secret.key
@@ -42,12 +48,35 @@ public class JwtUtil {
     // 로그 설정
     public static final Logger logger = LoggerFactory.getLogger("JWT 관련 로그");
 
+    private final RefreshTokenRepository refreshTokenRepository;
+
     // 생성자 호출 뒤에 실행, 요청의 반복 호출 방지
     @PostConstruct
     public void init() {
         byte[] bytes = Base64.getDecoder().decode(secretKey);
         key = Keys.hmacShaKeyFor(bytes);
     }
+
+    // 어세스 토큰 헤더 설정
+    public void setHeaderAccessToken(HttpServletResponse response, String accessToken) {
+        response.setHeader("Access_Token", accessToken);
+    }
+
+    // 리프레시 토큰 헤더 설정
+    public void setHeaderRefreshToken(HttpServletResponse response, String refreshToken) {
+        response.setHeader("Refresh_Token", refreshToken);
+    }
+
+    // header 토큰을 가져오는 기능
+    public String getHeaderToken(HttpServletRequest request, String type) {
+        return type.equals("Access") ? request.getHeader(ACCESS_TOKEN) :request.getHeader(REFRESH_TOKEN);
+    }
+
+    // 토큰 생성
+    public TokenDto createAllToken(String username, UserRoleEnum role) {
+        return new TokenDto(createToken(username, role,"Access"), createToken(username,role, "Refresh"));
+    }
+
 
     //JWT 생성
     //토큰 생성
@@ -56,43 +85,39 @@ public class JwtUtil {
 
         long token = (tokenType.equals("Access")) ? ACCESS_TIME : REFRESH_TIME;
         // Access Token
-        return BEARER_PREFIX +Jwts.builder()
+        return Jwts.builder()
                         .setSubject(username) // 사용자 식별자값(ID)
                         .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
                         .setExpiration(new Date(date.getTime() + token)) // 만료 시간
                         .setIssuedAt(date) // 발급일
                         .signWith(key, signatureAlgorithm) // 암호화 알고리즘
                         .compact();
-
     }
 
-    public String recreateAccessToken(String username, UserRoleEnum role) {
-        Date date = new Date();
+    // refreshToken 토큰 검증
+    // db에 저장되어 있는 token과 비교
+    // db에 저장한다는 것이 jwt token을 사용한다는 강점을 상쇄시킨다.
+    // db 보다는 redis를 사용하는 것이 더욱 좋다. (in-memory db기 때문에 조회속도가 빠르고 주기적으로 삭제하는 기능이 기본적으로 존재합니다.)
+    public Boolean refreshTokenValidation(String token) {
 
-        // Access Token
-        return BEARER_PREFIX +
-                Jwts.builder()
-                        .setSubject(username) // 사용자 식별자값(ID)
-                        .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
-                        .setExpiration(new Date(date.getTime() + TOKEN_TIME)) // 만료 시간
-                        .setIssuedAt(date) // 발급일
-                        .signWith(key, signatureAlgorithm) // 암호화 알고리즘
-                        .compact();
+        // 1차 토큰 검증
+        if(!validateToken(token)) return false;
+
+        // DB에 저장한 토큰 비교
+        Optional<RefreshToken> refreshToken = refreshTokenRepository.findByUsername(getUsernameFromToken(token));
+
+        return refreshToken.isPresent() && token.equals(refreshToken.get().getRefreshToken());
     }
 
-    // 생성된 JWT Cookie 에 저장
-    public void addJwtToCookie(String token, HttpServletResponse res) {
-        try {
-            token = URLEncoder.encode(token, "utf-8").replaceAll("\\+", "%20"); // Cookie Value 에는 공백이 불가능해서 encoding 진행
 
-            Cookie cookie = new Cookie(AUTHORIZATION_HEADER, token); // Name-Value
-            cookie.setPath("/");
+    // 토큰에서 email 가져오는 기능
+    public String getUsernameFromToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
+    }
+    public String getUserRoleFromToken(String token) {
 
-            // Response 객체에 Cookie 추가
-            res.addCookie(cookie);
-        } catch (UnsupportedEncodingException e) {
-            logger.error(e.getMessage());
-        }
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get(AUTHORIZATION_KEY).toString();
+
     }
 
     // JWT 토큰 substring
@@ -127,32 +152,5 @@ public class JwtUtil {
     public Claims getUserInfoFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
     }
-
-    public String getTokenFromRequest(HttpServletRequest req) {
-        Cookie[] cookies = req.getCookies();
-        if(cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals(AUTHORIZATION_HEADER)) {
-                    try {
-                        return URLDecoder.decode(cookie.getValue(), "UTF-8"); // Encode 되어 넘어간 Value 다시 Decode
-                    } catch (UnsupportedEncodingException e) {
-                        return null;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    // header 토큰을 가져오는 기능
-    public String getHeaderToken(HttpServletRequest request, String type) {
-        return type.equals("Access") ? request.getHeader(ACCESS_TOKEN) :request.getHeader(REFRESH_TOKEN);
-    }
-    // 토큰 생성
-    public TokenDto createAllToken(String username, UserRoleEnum role) {
-        return new TokenDto(createToken(username, role,"Access"), createToken(username,role, "Refresh"));
-    }
-
-
 
 }
