@@ -53,33 +53,64 @@ public class PostService {
         //DB 저장
         Post savePost = postRepository.save(post);
 
+        //폴더 객체 저장
+        folderRepository.save(new Folder(post,requestDto.getFolderNumber()));
+
         //Entity -> ResponseDto
         return new ResponseEntity<>(new PostResponseDto(savePost),null, HttpStatus.OK);
     }
 
 
-    public Page<PostResponseDto> getPosts(PageRequestDto pageRequestDto){
-
+    public Pageable getPageable(PageRequestDto pageRequestDto){
         // 페이징 처리
         Sort.Direction direction = pageRequestDto.getIsAsc() ? Sort.Direction.ASC : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, pageRequestDto.getSortBy());
-        Pageable pageable = PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
+        return PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
+    }
+    public Page<PostResponseDto> getPosts(PageRequestDto pageRequestDto){
 
-        // 사용자 권한 가져와서 ADMIN 이면 전체 조회, USER 면 본인이 추가한 부분 조회
-//        UserRoleEnum userRoleEnum = user.getRole();
 
-        Page<Post> postList;
-        postList = postRepository.findAll(pageable);
+        // 페이징 처리
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
+//
+//        // 사용자 권한 가져와서 ADMIN 이면 전체 조회, USER 면 본인이 추가한 부분 조회
+////        UserRoleEnum userRoleEnum = user.getRole();
+//
+//        Page<Post> postList;
+//        postList = postRepository.findAll(pageable);
+//
+//        return postList.map(PostResponseDto::new);
+        return postRepository.findAll(getPageable(pageRequestDto)).map(PostResponseDto::new);
 
-        return postList.map(PostResponseDto::new);
-
+        // comment : post  -> N : 1
+        // commentList -> postId 기준으로 불러온다.
+//        List<Post> postList = postRepository.findAllByOrderByCreatedAt();
+//        List<PostResponseDto> postResponseDtoList = new ArrayList<>();
+//
+//        for(Post post : postList){
+//            PostResponseDto postRes = new PostResponseDto(post);
+//            postResponseDtoList.add(postRes);
+//        }
+//        return new PostResponseListDto(postResponseDtoList);
+        //return postRepository.findAllByOrderByCreatedAtDesc().stream().map(PostResponseDto::new).toList();
     }
 
-    public PostResponseDto getPost(Long id) {
-        // id 로 조회
-        Post post = findPost(id);
-        // 새로운 Dto 로 수정할 부분 최소화
-        return new PostResponseDto(post);
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPost(Long folderNumber) {
+//        System.out.println("folderNumber = " + folderNumber);
+//        List<PostResponseDto> temp = getPosts(pageRequestDto).stream().collect(Collectors.toList());
+//
+//        List<Integer> checkLong = folderRepository.findByFolderNumber(folderNumber).stream().map(n->n.getPostId().intValue()).collect(Collectors.toList());
+//
+//        temp = temp.stream().filter(n->checkLong.contains(n.getId().intValue())).collect(Collectors.toList());
+        return postRepository.findAll().stream()
+                .filter(
+                        n->folderRepository.findByFolderNumber(folderNumber).stream()
+                        .map(Folder::getPostId).toList()
+                        .contains(n.getId())
+                )
+                .map(PostResponseDto::new)
+                .collect(Collectors.toList());
     }
 
     @Transactional //변경 감지(Dirty Checking), 부모메서드인 updatePost
