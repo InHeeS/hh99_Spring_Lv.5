@@ -27,7 +27,7 @@ public class LikeService {
                 new IllegalArgumentException("해당 게시글은 존재하지 않습니다.")
         );
 
-        PostLike temp = postLikeRepository.findByUserId(userId).orElse(null);
+        PostLike temp = postLikeRepository.findByUserIdAndPostId(userId,postId).orElse(null);
         if(temp==null) {
             postLikeRepository.save(new PostLike(postId,userId));
             post.setLikeCount(post.getLikeCount() + 1);
@@ -47,7 +47,7 @@ public class LikeService {
         Comment comment = commentRepository.findById(commentId).orElseThrow(()->
                 new IllegalArgumentException("해당 댓글은 존재하지 않습니다.")
         );
-        CommentLike temp =commentLikeRepository.findByUserId(userId).orElse(null);
+        CommentLike temp =commentLikeRepository.findByUserIdAndCommentId(userId,commentId).orElse(null);
         if(temp==null) {
             commentLikeRepository.save(new CommentLike(postId,commentId,userId));
             comment.setLikeCount(comment.getLikeCount() + 1);
