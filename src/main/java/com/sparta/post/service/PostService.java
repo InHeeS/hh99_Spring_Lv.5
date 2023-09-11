@@ -31,6 +31,7 @@ public class PostService {
     private final UserRepository userRepository;
     //멤버 변수 선언
     private final PostRepository postRepository;
+    private final FolderRepository folderRepository;
 
     public List<PostResponseDto> getFolder(Long id) {
         List<Post> postList = postRepository.findByFolderNumber(id);
