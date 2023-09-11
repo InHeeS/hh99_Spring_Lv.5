@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,48 +38,36 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
 
-        String tokenValue = jwtUtil.getTokenFromRequest(req);
+        String accessToken = jwtUtil.getHeaderToken(req, "Access");
+        String refreshToken = jwtUtil.getHeaderToken(req, "Refresh");
 
-        if (StringUtils.hasText(tokenValue)) {
-            String[] temp = tokenValue.split("[=,]");
-            String accessTokenValue = temp[3];
-            String refreshTokenValue = temp[5];
-            // JWT 토큰 substring
-            accessTokenValue = jwtUtil.substringToken(accessTokenValue);
-            refreshTokenValue = jwtUtil.substringToken(refreshTokenValue);
-            log.info(accessTokenValue);
-            log.info(refreshTokenValue);
+        if(accessToken != null) {
+            // 어세스 토큰값이 유효하다면 setAuthentication를 통해
+            // security context에 인증 정보저장
+            if(jwtUtil.validateToken(accessToken)){
+                setAuthentication(jwtUtil.getUsernameFromToken(accessToken));
+            }
+            // 어세스 토큰이 만료된 상황 && 리프레시 토큰 또한 존재하는 상황
+            else if (refreshToken != null) {
+                // 리프레시 토큰 검증 && 리프레시 토큰 DB에서  토큰 존재유무 확인
+                boolean isRefreshToken = jwtUtil.refreshTokenValidation(refreshToken);
+                // 리프레시 토큰이 유효하고 리프레시 토큰이 DB와 비교했을때 똑같다면
+                if (isRefreshToken) {
+                    // 리프레시 토큰으로 아이디 정보 가져오기
+                    String username = jwtUtil.getUsernameFromToken(refreshToken);
+                    String role = jwtUtil.getUserRoleFromToken(refreshToken);
+                    // 새로운 어세스 토큰 발급
 
-            switch (jwtUtil.validateAccessAndRefreshToken(accessTokenValue)) {
-                case 1:
-                    Claims info = jwtUtil.getUserInfoFromToken(accessTokenValue);
-                    try {
-                        setAuthentication(info.getSubject());
-                    } catch (Exception e) {
-                        log.error(e.getMessage());
-                        return;
-                    }
-                    break;
-                case 2: // access 만료 토큰
-                    if(jwtUtil.validateToken(refreshTokenValue)) {
-                        String username = SecurityUtil.getPrincipal().get().getUsername();
-                        UserRoleEnum role = SecurityUtil.getPrincipal().get().getRole();
-
-                        String token = jwtUtil.recreateAccessToken(username,role);
-                        jwtUtil.addJwtToCookie(token, res);
-                        Claims info2 = jwtUtil.getUserInfoFromToken(refreshTokenValue);
-                        try {
-                            setAuthentication(info2.getSubject());
-                        } catch (Exception e) {
-                            log.error(e.getMessage());
-                            return;
-                        }
-                    }else {
-                        throw new TokenNotValidException("유효하지 않는 Token !! ㄴ >.< ㄱ !! 입니다");
-                    }
-                    break;
-                default:
-                    throw new TokenNotValidException("지원하지 않는 JWT 토큰이거나 잘못된 JWT 토큰입니다 Token !! ㄴ >.< ㄱ !! 입니다");
+                    String newAccessToken = jwtUtil.createToken(username, UserRoleEnum.valueOf(role),"Access");
+                    // 헤더에 어세스 토큰 추가
+                    jwtUtil.setHeaderAccessToken(res, newAccessToken);
+                    // Security context에 인증 정보 넣기
+                    setAuthentication(jwtUtil.getUsernameFromToken(newAccessToken));
+                }
+                // 리프레시 토큰이 만료 || 리프레시 토큰이 DB와 비교했을때 똑같지 않다면
+                else {
+                    throw new TokenNotValidException("인증 필터에서 오류났음");
+                }
             }
         }
         filterChain.doFilter(req, res);
