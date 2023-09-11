@@ -1,9 +1,6 @@
 package com.sparta.post.service;
 
-import com.sparta.post.dto.PageRequestDto;
-import com.sparta.post.dto.PostRequestDto;
-import com.sparta.post.dto.PostResponseDto;
-import com.sparta.post.dto.PostResponseListDto;
+import com.sparta.post.dto.*;
 import com.sparta.post.entity.*;
 import com.sparta.post.exception.TokenNotValidException;
 import com.sparta.post.exception.UserNotFoundException;
@@ -22,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,7 +31,11 @@ public class PostService {
     private final UserRepository userRepository;
     //멤버 변수 선언
     private final PostRepository postRepository;
-    private final FolderRepository folderRepository;
+
+    public List<PostResponseDto> getFolder(Long id) {
+        List<Post> postList = postRepository.findByFolderNumber(id);
+        return postList.stream().map(PostResponseDto::new).toList();
+    }
 
     @Transactional
     public ResponseEntity<?> createPost(PostRequestDto requestDto, String tokenValue) {
@@ -43,7 +45,6 @@ public class PostService {
         User user = userRepository.findByUsername(username).orElseThrow(() ->
                 new UserNotFoundException("회원을 찾을 수 없습니다.")
         );
-
 
         //RequestDto -> Entity
         Post post = new Post(requestDto,username);
@@ -67,6 +68,7 @@ public class PostService {
         return PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
     }
     public Page<PostResponseDto> getPosts(PageRequestDto pageRequestDto){
+
 
         // 페이징 처리
 //        Pageable pageable = PageRequest.of(pageRequestDto.getPage(), pageRequestDto.getSize(), sort);
@@ -110,6 +112,7 @@ public class PostService {
                 .map(PostResponseDto::new)
                 .collect(Collectors.toList());
     }
+
     @Transactional //변경 감지(Dirty Checking), 부모메서드인 updatePost
     public ResponseEntity<?> updatePost(Long id, PostRequestDto requestDto, String tokenValue){
         User principal = SecurityUtil.getPrincipal().get();
@@ -169,5 +172,4 @@ public class PostService {
                 new IllegalArgumentException("선택한 게시글은 존재하지 않습니다.")
         );
     }
-
 }
