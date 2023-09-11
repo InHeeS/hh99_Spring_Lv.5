@@ -36,7 +36,8 @@ public class JwtUtil {
     // Token 식별자
     public static final String BEARER_PREFIX = "Bearer ";
     // 토큰 만료시간
-    private final long TOKEN_TIME = 60 * 60 * 1000L; // 60분, 밀리세컨드
+    private final long TOKEN_TIME =  10 * 1000L; // 60분, 밀리세컨드
+    private final long TOKEN_TIME2 = 60 * 60 * 1000L;
 
     @Value("${jwt.secret.key}") // Base64 Encode 한 SecretKey
     private String secretKey; //jwt.secret.key
@@ -79,6 +80,20 @@ public class JwtUtil {
         return TokenDto.builder().accessToken(accessToken).refreshToken(refreshToken).key(username).build().toString();
     }
 
+    public String recreateAccessToken(String username, UserRoleEnum role) {
+        Date date = new Date();
+
+        // Access Token
+        return BEARER_PREFIX +
+                Jwts.builder()
+                        .setSubject(username) // 사용자 식별자값(ID)
+                        .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
+                        .setExpiration(new Date(date.getTime() + TOKEN_TIME)) // 만료 시간
+                        .setIssuedAt(date) // 발급일
+                        .signWith(key, signatureAlgorithm) // 암호화 알고리즘
+                        .compact();
+    }
+
     // 생성된 JWT Cookie 에 저장
     public void addJwtToCookie(String token, HttpServletResponse res) {
         try {
@@ -119,6 +134,25 @@ public class JwtUtil {
             logger.error("JWT claims is empty, 잘못된 JWT 토큰 입니다.");
         }
         return false;
+    }
+
+    public int validateAccessAndRefreshToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return 1;
+        } catch (SecurityException | MalformedJwtException | SignatureException e) {
+            logger.error("Invalid JWT signature, 유효하지 않는 JWT 서명 입니다.");
+            return -1;
+        } catch (ExpiredJwtException e) {
+            logger.error("Expired JWT token, 만료된 JWT token 입니다.");
+            return 2;
+        } catch (UnsupportedJwtException e) {
+            logger.error("Unsupported JWT token, 지원되지 않는 JWT 토큰 입니다.");
+            return -1;
+        } catch (IllegalArgumentException e) {
+            logger.error("JWT claims is empty, 잘못된 JWT 토큰 입니다.");
+            return -1;
+        }
     }
 
     // 토큰에서 사용자 정보 가져오기

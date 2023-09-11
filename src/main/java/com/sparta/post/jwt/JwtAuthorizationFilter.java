@@ -1,8 +1,11 @@
 package com.sparta.post.jwt;
 
+import com.sparta.post.entity.User;
+import com.sparta.post.entity.UserRoleEnum;
 import com.sparta.post.exception.TokenNotValidException;
+import com.sparta.post.security.UserDetailsImpl;
 import com.sparta.post.security.UserDetailsServiceImpl;
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.*;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,21 +40,45 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         String tokenValue = jwtUtil.getTokenFromRequest(req);
 
         if (StringUtils.hasText(tokenValue)) {
+            String[] temp = tokenValue.split("[=,]");
+            String accessTokenValue = temp[3];
+            String refreshTokenValue = temp[5];
             // JWT 토큰 substring
-            tokenValue = jwtUtil.substringToken(tokenValue);
-            log.info(tokenValue);
+            accessTokenValue = jwtUtil.substringToken(accessTokenValue);
+            refreshTokenValue = jwtUtil.substringToken(refreshTokenValue);
+            log.info(accessTokenValue);
+            log.info(refreshTokenValue);
 
-            if (!jwtUtil.validateToken(tokenValue))
-                throw new TokenNotValidException("토큰이 유효하지 않습니다.");
+            switch (jwtUtil.validateAccessAndRefreshToken(accessTokenValue)) {
+                case 1:
+                    Claims info = jwtUtil.getUserInfoFromToken(accessTokenValue);
+                    try {
+                        setAuthentication(info.getSubject());
+                    } catch (Exception e) {
+                        log.error(e.getMessage());
+                        return;
+                    }
+                    break;
+                case 2: // access 만료 토큰
+                    if(jwtUtil.validateToken(refreshTokenValue)) {
+                        String username = SecurityUtil.getPrincipal().get().getUsername();
+                        UserRoleEnum role = SecurityUtil.getPrincipal().get().getRole();
 
-
-            Claims info = jwtUtil.getUserInfoFromToken(tokenValue);
-
-            try {
-                setAuthentication(info.getSubject());
-            } catch (Exception e) {
-                log.error(e.getMessage());
-                return;
+                        String token = jwtUtil.recreateAccessToken(username,role);
+                        jwtUtil.addJwtToCookie(token, res);
+                        Claims info2 = jwtUtil.getUserInfoFromToken(refreshTokenValue);
+                        try {
+                            setAuthentication(info2.getSubject());
+                        } catch (Exception e) {
+                            log.error(e.getMessage());
+                            return;
+                        }
+                    }else {
+                        throw new TokenNotValidException("유효하지 않는 Token !! ㄴ >.< ㄱ !! 입니다");
+                    }
+                    break;
+                default:
+                    throw new TokenNotValidException("지원하지 않는 JWT 토큰이거나 잘못된 JWT 토큰입니다 Token !! ㄴ >.< ㄱ !! 입니다");
             }
         }
         filterChain.doFilter(req, res);
