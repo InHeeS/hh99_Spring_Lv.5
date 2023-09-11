@@ -2,6 +2,7 @@ package com.sparta.post.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparta.post.dto.LoginRequestDto;
+import com.sparta.post.dto.TokenDto;
 import com.sparta.post.entity.UserRoleEnum;
 import com.sparta.post.exception.UserNotFoundException;
 import com.sparta.post.security.UserDetailsImpl;

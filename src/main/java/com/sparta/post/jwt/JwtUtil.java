@@ -1,5 +1,6 @@
 package com.sparta.post.jwt;
 
+import com.sparta.post.dto.TokenDto;
 import com.sparta.post.entity.UserRoleEnum;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -7,6 +8,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Builder;
+import org.hibernate.validator.internal.engine.messageinterpolation.parser.Token;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,7 +58,8 @@ public class JwtUtil {
     public String createToken(String username, UserRoleEnum role) {
         Date date = new Date();
 
-        return BEARER_PREFIX +
+        // Access Token
+        String accessToken = BEARER_PREFIX +
                 Jwts.builder()
                         .setSubject(username) // 사용자 식별자값(ID)
                         .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
@@ -63,6 +67,16 @@ public class JwtUtil {
                         .setIssuedAt(date) // 발급일
                         .signWith(key, signatureAlgorithm) // 암호화 알고리즘
                         .compact();
+        // Refresh Token
+        String refreshToken= BEARER_PREFIX +
+                Jwts.builder()
+                        .setSubject(username) // 사용자 식별자값(ID)
+                        .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
+                        .setExpiration(new Date(date.getTime() + TOKEN_TIME2)) // 만료 시간
+                        .setIssuedAt(date) // 발급일
+                        .signWith(key, signatureAlgorithm) // 암호화 알고리즘
+                        .compact(); // 토큰을 문자열로 만들어준다.
+        return TokenDto.builder().accessToken(accessToken).refreshToken(refreshToken).key(username).build().toString();
     }
 
     // 생성된 JWT Cookie 에 저장
