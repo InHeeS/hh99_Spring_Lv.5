@@ -56,28 +56,19 @@ public class JwtUtil {
 
     //JWT 생성
     //토큰 생성
-    public String createToken(String username, UserRoleEnum role) {
+    public String createToken(String username, UserRoleEnum role, String tokenType) {
         Date date = new Date();
 
+        long token = (tokenType.equals("Access")) ? ACCESS_TIME : REFRESH_TIME;
         // Access Token
-        String accessToken = BEARER_PREFIX +
-                Jwts.builder()
+        return BEARER_PREFIX +Jwts.builder()
                         .setSubject(username) // 사용자 식별자값(ID)
                         .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
-                        .setExpiration(new Date(date.getTime() + TOKEN_TIME)) // 만료 시간
+                        .setExpiration(new Date(date.getTime() + token)) // 만료 시간
                         .setIssuedAt(date) // 발급일
                         .signWith(key, signatureAlgorithm) // 암호화 알고리즘
                         .compact();
-        // Refresh Token
-        String refreshToken= BEARER_PREFIX +
-                Jwts.builder()
-                        .setSubject(username) // 사용자 식별자값(ID)
-                        .claim(AUTHORIZATION_KEY, role) // key 값으로 꺼내어 쓸 수 있다.
-                        .setExpiration(new Date(date.getTime() + TOKEN_TIME2)) // 만료 시간
-                        .setIssuedAt(date) // 발급일
-                        .signWith(key, signatureAlgorithm) // 암호화 알고리즘
-                        .compact(); // 토큰을 문자열로 만들어준다.
-        return TokenDto.builder().accessToken(accessToken).refreshToken(refreshToken).key(username).build().toString();
+
     }
 
     public String recreateAccessToken(String username, UserRoleEnum role) {
@@ -176,4 +167,16 @@ public class JwtUtil {
         }
         return null;
     }
+
+    // header 토큰을 가져오는 기능
+    public String getHeaderToken(HttpServletRequest request, String type) {
+        return type.equals("Access") ? request.getHeader(ACCESS_TOKEN) :request.getHeader(REFRESH_TOKEN);
+    }
+    // 토큰 생성
+    public TokenDto createAllToken(String username, UserRoleEnum role) {
+        return new TokenDto(createToken(username, role,"Access"), createToken(username,role, "Refresh"));
+    }
+
+
+
 }
