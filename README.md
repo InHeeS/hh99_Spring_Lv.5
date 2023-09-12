@@ -3,7 +3,7 @@
 
 
 api 명세서
-https://near-power-76b.notion.site/121490c3dfbe4be382cf906db8d973b4?v=1d6ffac5a0ba46d9a4979f8a12197b01&pvs=4
+https://documenter.getpostman.com/view/29336568/2s9YC2zZ1X
 
 URL 테스트 결과
 
