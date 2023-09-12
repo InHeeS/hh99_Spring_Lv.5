@@ -25,9 +25,13 @@ https://documenter.getpostman.com/view/29336568/2s9YC2zZ1X
     *  대댓글 기능 추가
 
     * 대댓글 작성
+    
     * 게시글 조회시 댓글과 대댓글 전부 조회
 
     * 게시글 및 댓글 조회시 페이징 및 정렬 기능 추가
-    * 게시글 카테고리 샐성
+    
+    * 게시글 카테고리 생성
+    
     * Refresh Token 적용
+    
     * 프로젝트에 swagger 적용
