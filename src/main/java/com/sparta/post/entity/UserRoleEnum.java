@@ -1,5 +1,9 @@
 package com.sparta.post.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
 public enum UserRoleEnum {
 
     USER(Authority.USER),  // 사용자 권한, 생성자의 값을 넣어준다.

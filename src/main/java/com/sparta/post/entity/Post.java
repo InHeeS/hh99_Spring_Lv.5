@@ -53,6 +53,7 @@ public class Post extends Timestamped{
     public Post(PostRequestDto requestDto, String username) {
         this.title = requestDto.getTitle();
         this.content = requestDto.getContent();
+        this.folderNumber = requestDto.getFolderNumber();
         this.username = username;
     }
 

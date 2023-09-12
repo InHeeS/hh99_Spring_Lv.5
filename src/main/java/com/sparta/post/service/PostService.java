@@ -8,6 +8,7 @@ import com.sparta.post.jwt.SecurityUtil;
 import com.sparta.post.repository.FolderRepository;
 import com.sparta.post.repository.PostRepository;
 import com.sparta.post.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,7 +40,7 @@ public class PostService {
     }
 
     @Transactional
-    public ResponseEntity<?> createPost(PostRequestDto requestDto, String tokenValue) {
+    public ResponseEntity<?> createPost(PostRequestDto requestDto) {
         User principal = SecurityUtil.getPrincipal().get();
         String username = principal.getUsername();
 
@@ -115,7 +116,7 @@ public class PostService {
     }
 
     @Transactional //변경 감지(Dirty Checking), 부모메서드인 updatePost
-    public ResponseEntity<?> updatePost(Long id, PostRequestDto requestDto, String tokenValue){
+    public ResponseEntity<?> updatePost(Long id, PostRequestDto requestDto){
         User principal = SecurityUtil.getPrincipal().get();
 
         // 해당 post DB에 존재하는지 확인 수정필요
@@ -139,7 +140,7 @@ public class PostService {
                 ,null, HttpStatus.OK);
     }
 
-    public ResponseEntity<Message> deletePost(Long id, String tokenValue){
+    public ResponseEntity<Message> deletePost(Long id){
 
         Message msg = new Message("게시글 삭제 성공",200);
 

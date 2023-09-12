@@ -4,6 +4,7 @@ import com.sparta.post.dto.*;
 import com.sparta.post.entity.Message;
 import com.sparta.post.jwt.JwtUtil;
 import com.sparta.post.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,9 +33,8 @@ public class PostController {
 
     // @RequestBody 는 Json 형식으로 넘겨주어야한다.
     @PostMapping("/post")
-    public ResponseEntity<?> createPost(@RequestBody PostRequestDto requestDto,
-                                      @CookieValue(JwtUtil.AUTHORIZATION_HEADER) String tokenValue)  {
-        return postService.createPost(requestDto,tokenValue);
+    public ResponseEntity<?> createPost(@RequestBody PostRequestDto requestDto)  {
+        return postService.createPost(requestDto);
     }
 
     @GetMapping("/posts") // Slice
@@ -53,14 +53,13 @@ public class PostController {
 
     //@PathVariable uri -> id
     @PutMapping("/post/{id}")
-    public ResponseEntity<?> updatePost(@PathVariable Long id,@RequestBody PostRequestDto requestDto,
-                                            @CookieValue(JwtUtil.AUTHORIZATION_HEADER) String tokenValue){
-        return postService.updatePost(id, requestDto, tokenValue);
+    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody PostRequestDto requestDto){
+        return postService.updatePost(id, requestDto);
     }
 
     @DeleteMapping("/post/{id}")
-    public ResponseEntity<Message> deletePost(@PathVariable Long id, @CookieValue(JwtUtil.AUTHORIZATION_HEADER) String tokenValue){
-        return postService.deletePost(id,  tokenValue);
+    public ResponseEntity<Message> deletePost(@PathVariable Long id){
+        return postService.deletePost(id);
     }
 
 }
